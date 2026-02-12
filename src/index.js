@@ -1,12 +1,60 @@
 // ================================= Approach: 2 (Best for Production) ================================\
 // require('dotenv').config({path:'./env'});
 
+import { app } from "./app.js";
 import connectDB from "./db/db.js";
 import dotenv from "dotenv";
 
-dotenv.config({path:'./env'});
+dotenv.config({ path: './env' });
 
-connectDB();
+const port = process.env.PORT || 3000;
+
+connectDB()
+    .then(() => {
+
+        app.on("error", (error) => {
+            console.log("Error :", error);
+
+        })
+
+        app.listen(port, () => {
+            console.log(`Server is running in port: ${port}!!!`);
+
+        })
+    })
+    .catch((error) => {
+        console.log('Mongodb connection failled!!! ', error);
+
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // ================================= Approach: 1 ================================
