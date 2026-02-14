@@ -17,13 +17,11 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
   // Getting user details from frontend
-  const { fullName, email, username, password } = req.body;
-
-  console.log(fullName, email, username);
+  const { fullname, email, username, password } = req.body;
 
   // validation for empty fields
   if (
-    [fullName, email, username, password].some((field) => field?.trim() === "")
+    [fullname, email, username, password].some((field) => field?.trim() === "")
   ) {
     throw new ApiError(400, "All fields are required!!!");
   }
@@ -35,11 +33,14 @@ const registerUser = asyncHandler(async (req, res) => {
   if (existedUser) {
     throw new ApiError(409, "username and email already exists!!!");
   }
-
+  
   // checking for avatar image
   const avatarLocalPath = req.files?.avatar[0]?.path;
-
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+//   const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  let coverImageLocalPath;
+  if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar is required!!!");
@@ -56,9 +57,10 @@ const registerUser = asyncHandler(async (req, res) => {
   const user = await User.create({
     username: username.toLowerCase(),
     email,
-    fullName,
+    fullname,
     avatar: avatarUploaded.url,
     coverImage: coverImageUploaded?.url || "",
+    password
   });
 
   // removing password and refresh token from response

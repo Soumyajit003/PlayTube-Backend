@@ -3,82 +3,84 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
-    {
-        username: {
-            type: String,
-            unique: true,
-            lowercase: true,
-            trim: true,
-            index: true,
-            required: true
-        },
-        email: {
-            type: String,
-            unique: true,
-            lowercase: true,
-            trim: true,
-            required: true
-        },
-        fullname: {
-            type: String,
-            trim: true,
-            index: true,
-            required: true
-        },
-        avatar: {
-        },
-        coverImage: {
-            type: String,
-        },
-        watchHistory: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: 'Video'
-            }
-        ],
-        password: {
-            type: String,
-            required: [true, "Password is required!!!"],
-        },
-        refreshToken: {
-            type: String
-        }
-    }, { timestamps: true });
+  {
+    username: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+      required: true,
+    },
+    email: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      required: true,
+    },
+    fullname: {
+      type: String,
+      trim: true,
+      index: true,
+      required: true,
+    },
+    avatar: {},
+    coverImage: {
+      type: String,
+    },
+    watchHistory: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Video",
+      },
+    ],
+    password: {
+      type: String,
+      required: [true, "Password is required!!!"],
+    },
+    refreshToken: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+);
 
 // encrypting password using 'pre hook', pre-> it will trigger just before saving into the database
-userSchema.pre("save",async function(next){       // never use ()=>{}, because arrow fn don't support 'this'
-    if(!this.isModified("password")) return next();
-    
-    this.password = await bcrypt.hash(this.password, 10);    // password will encrypt using hash method
-    next();
-})
+userSchema.pre("save", async function () {
+  // never use ()=>{}, because arrow fn don't support 'this'
+  if (!this.isModified("password")) return;
 
-userSchema.methods.isPasswordCorrect = async function(password){
-    return await bcrypt.compare(password, this.password);
-}
+  this.password = await bcrypt.hash(this.password, 10); // password will encrypt using hash method
 
-userSchema.methods.generateAccessToken = function(){
-    return jwt.sign(
-        {
-            _id:this._id,
-            username:this.username
-        },
-        process.env.ACCESS_TOKEN_SECRET,
-        {
-            expiresIn:ACCESS_TOKEN_EXPIRY
-        }
-    )
-}
-userSchema.methods.generateRefreshToken = function(){
-    return jwt.sign(
-        {
-            _id:this._id,
-        },
-        process.env.REFRESH_TOKEN_SECRET,
-        {
-            expiresIn:REFRESH_TOKEN_EXPIRY
-        }
-    )
-}
+});
 
-export const User = mongoose.model('User', userSchema);
+userSchema.methods.isPasswordCorrect = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+
+userSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      username: this.username,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: ACCESS_TOKEN_EXPIRY,
+    }
+  );
+};
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: REFRESH_TOKEN_EXPIRY,
+    }
+  );
+};
+
+export const User = mongoose.model("User", userSchema);
