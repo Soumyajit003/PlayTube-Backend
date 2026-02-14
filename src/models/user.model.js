@@ -46,8 +46,9 @@ const userSchema = new Schema(
     }, { timestamps: true });
 
 // encrypting password using 'pre hook', pre-> it will trigger just before saving into the database
-userSchema.pre("save",async function(){       // never use ()=>{}, because arrow fn don't support 'this'
+userSchema.pre("save",async function(next){       // never use ()=>{}, because arrow fn don't support 'this'
     if(!this.isModified("password")) return next();
+    
     this.password = await bcrypt.hash(this.password, 10);    // password will encrypt using hash method
     next();
 })
