@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/apiResponse.js";
 
 // This is a general function to generate Access token and Refresh Token
 const generateAccessAndRefreshToken = async (userId) => {
+  
   try {
     const user = await User.findById(userId);
     const accessToken = user.generateAccessToken();
@@ -15,6 +16,7 @@ const generateAccessAndRefreshToken = async (userId) => {
     await user.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
+
   } catch (error) {
     throw new ApiError(
       500,
@@ -24,7 +26,7 @@ const generateAccessAndRefreshToken = async (userId) => {
 };
 
 // Registering new user
-const registerUser = asyncHandler(async (req, res) => {
+const registerUser = asyncHandler(async (req, res) => { 
   // Get user details from frontend
   // Validations - no empty fields
   // User do not exists : username, email
@@ -36,6 +38,8 @@ const registerUser = asyncHandler(async (req, res) => {
   // return response
 
   // Getting user details from frontend
+  console.log(req.body);
+  
   const { fullname, email, username, password } = req.body;
 
   // validation for empty fields
@@ -117,18 +121,19 @@ const loginUser = asyncHandler(async (req, res) => {
   // if password match, generate access and refresh token
   // send cookie
 
+
+  const { email, password } = req.body;
+  
   console.log(req.body);
-
-  const { username, email, password } = req.body;
-
+  
   // validating data to check empty field
-  if (!username || !email) {
+  if (!email) {
     throw new ApiError(400, "Username or Email required!!!");
   }
 
   // finding user if exist
   const user = await User.findOne({
-    $or: [{ username }, { email }],
+    $or: [{ email }],
   });
 
   if (!user) {
