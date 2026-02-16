@@ -1,26 +1,45 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { ApiResponse } from "./apiResponse.js";
+import { ApiError } from "./apiError.js";
 
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const uploadOnCloudinary = async (localPath) => {
-    try {
-        if(!localPath) return null;
-        //upload on Cloudinary
-        const response = await cloudinary.uploader.upload(localPath,{
-            resource_type:"auto"
-        })
-        // file has been uploaded successfully
-        fs.unlinkSync(localPath);
-        return response;
-
-    } catch (error) {
-        fs.unlinkSync(localPath); //it will remove the file from the locally stored temporary file if file upload got failled
+  try {
+    if (!localPath) return null;
+    //upload on Cloudinary
+    const response = await cloudinary.uploader.upload(localPath, {
+      resource_type: "auto",
+    });
+    // file has been uploaded successfully
+    if (fs.existsSync(localPath)) {
+      fs.unlinkSync(localPath);
     }
-}
+    return response;
+  } catch (error) {
+    // fs.unlinkSync(localPath); //it will remove the file from the locally stored temporary file if file upload got failled
+    if (localPath && fs.existsSync(localPath)) {
+      fs.unlinkSync(localPath);
+    }
 
-export {uploadOnCloudinary};
+    throw new ApiError(400,"Cloudinary Upload Error!!!"); 
+    
+}
+};
+
+const deleteFromCloudinary = async (avatarPublicId) => {
+    try {
+        const response = await cloudinary.uploader.destroy(avatarPublicId);
+        console.log("Deleted from cloudinary");
+        return response;
+    } catch (error) {
+        throw new ApiError(400,"Error while daleting file from Cloudinary!!!"); 
+    }
+};
+
+export { uploadOnCloudinary, deleteFromCloudinary };

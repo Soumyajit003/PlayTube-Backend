@@ -25,7 +25,10 @@ const userSchema = new Schema(
       index: true,
       required: true,
     },
-    avatar: {},
+    avatar: {
+      type: String,
+      required:true
+    },
     coverImage: {
       type: String,
     },

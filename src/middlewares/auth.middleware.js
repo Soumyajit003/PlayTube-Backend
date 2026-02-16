@@ -5,9 +5,11 @@ import { User } from "../models/user.model.js";
 
 const verifyJWT = asyncHandler(async (req, _, next) => {
   try {
-    const token =
-      req.cookies?.accessToken ||
-      req.header("Authorization").replace("Bearer ", "");
+    let token = req.cookies?.accessToken;
+
+    if (!token && req.headers.authorization) {
+      token = req.headers.authorization.replace("Bearer ", "");
+    }
 
     if (!token) {
       throw new ApiError(401, "Unauthorize request :(");
@@ -25,7 +27,6 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
 
     req.user = user;
     next();
-    
   } catch (error) {
     throw new ApiError(401, error?.message || "Invalid access token!!!");
   }
