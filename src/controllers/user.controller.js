@@ -237,6 +237,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 // Change current password
 const changeCurrentPassword = asyncHandler(async (req, res) => {
+  console.log(req.body);
+  
   const { oldPassword, newPassword } = req.body;
 
   const user = await User.findById(req.user?._id);
@@ -256,9 +258,10 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
 // Fetching current user
 const getCurrentUser = asyncHandler(async (req, res) => {
+  
   return res
     .status(200)
-    .json(200, req.user, "Current user fetched successfully...");
+    .json(new ApiResponse(200, req.user, "Current user fetched successfully..."));
 });
 
 // Update user details
@@ -420,7 +423,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         isSubscribed: {
           $cond: {
-            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            if: { $in: [req.user?._id, { $ifNull: ["$subscribers.subscriber", []] }] },
             then: true,
             else: false,
           },
