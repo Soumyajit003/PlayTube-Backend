@@ -2,9 +2,10 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { getVideoFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { Video } from "./../models/video.model.js";
 
+// controller for uploading video
 const uploadVideo = asyncHandler(async (req, res) => {
   //TODO:
   // Getting the video data from the body
@@ -51,4 +52,26 @@ const uploadVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Video uploaded successfully:)"));
 });
 
-export { uploadVideo };
+// controller to get all videos
+const getAllVideos = asyncHandler(async (req, res) => {
+
+})
+
+// controller to get video by Id
+const getVideoById = asyncHandler( async (req, res) => {
+    const { videoId } = req.params;
+
+    if(!videoId){
+        throw new ApiError(400, "Videos id is missing!!!");
+    }
+
+    const video = await Video.findById(videoId);
+    const cloudinaryVideo = getVideoFromCloudinary(video.videoPublicId);
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video fetched by Id successfully..."));
+
+})
+
+export { uploadVideo, getAllVideos, getVideoById };

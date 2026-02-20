@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import { ApiResponse } from "./apiResponse.js";
-import { ApiError } from "./apiError.js";
+import { ApiResponse } from "./ApiResponse.js";
+import { ApiError } from "./ApiError.js";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -42,4 +42,16 @@ const deleteFromCloudinary = async (avatarPublicId) => {
     }
 };
 
-export { uploadOnCloudinary, deleteFromCloudinary };
+const getVideoFromCloudinary = async (publicId) => {
+  try {
+    const result = await cloudinary.api.resource(publicId, {
+      resource_type:"video"
+    });
+    return result;
+    
+  } catch (error) {
+    throw new ApiError(402,"Error to get video from the Cloudinary!!!")
+  }
+}
+
+export { uploadOnCloudinary, deleteFromCloudinary, getVideoFromCloudinary };
