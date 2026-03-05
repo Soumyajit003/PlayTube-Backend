@@ -10,6 +10,6 @@ const tweetSchema = new Schema({
       type: String,
       required: true,
     },
-},{timestamps});
+},{timestamps: true});
 
 export const Tweet = new model("Tweet", tweetSchema);

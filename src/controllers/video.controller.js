@@ -9,6 +9,8 @@ import {
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { Video } from "./../models/video.model.js";
+import { Like } from "../models/like.model.js";
+import { Comment } from "./../models/comment.model.js";
 
 // controller for uploading video
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -304,7 +306,7 @@ const updateVideo = asyncHandler(async (req, res) => {
     throw new ApiError(400, "No video found!!!");
   }
 
-  if (video.owner.toString() !== req.user?._id.toString()) {
+  if (video?.owner.toString() !== req.user?._id.toString()) {
     throw new ApiError(
       400,
       "You can't update the video as you are not the owner!!!"
@@ -349,4 +351,48 @@ const updateVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedVideo, "Video updated successfully"));
 });
 
-export { uploadVideo, getAllVideos, getVideoById, updateVideo };
+// controller for deleting video from db and cloudinary also
+const deleteVideo = asyncHandler(async (req, res) => {
+  const videoId = req.params.videoId;
+
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid VideoId!!!");
+  }
+
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(400, "No video is found!!!");
+  }
+
+  if (video?.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(
+      400,
+      "You can't delete the video as you are not the owner!!!"
+    );
+  }
+
+  const videoDeleted = await Video.findByIdAndDelete(video._id);
+
+  if (!videoDeleted) {
+    throw new ApiError(500, "Error while deleting the video, try again!!!");
+  }
+
+  await deleteFromCloudinary(video.thumbnailPublicId);
+  await deleteFromCloudinary(video.videoPublicId, "video"); // mention "video" while deleting video
+
+  await Like.deleteMany({
+    video: videoId,
+  });
+
+  await Comment.deleteMany({
+    video: videoId,
+  });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Video deleted successfully"));
+});
+
+
+
+export { uploadVideo, getAllVideos, getVideoById, updateVideo, deleteVideo };

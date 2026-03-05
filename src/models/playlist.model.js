@@ -21,7 +21,7 @@ const playlistSchema = new Schema(
       ref: "User",
     },
   },
-  { timestamps }
+  { timestamps: true }
 );
 
 export const Playlist = new model("Playlist", playlistSchema);
