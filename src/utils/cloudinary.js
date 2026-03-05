@@ -32,9 +32,9 @@ const uploadOnCloudinary = async (localPath) => {
 }
 };
 
-const deleteFromCloudinary = async (avatarPublicId) => {
+const deleteFromCloudinary = async (PublicId) => {
     try {
-        const response = await cloudinary.uploader.destroy(avatarPublicId);
+        const response = await cloudinary.uploader.destroy(PublicId);
         console.log("Deleted from cloudinary");
         return response;
     } catch (error) {

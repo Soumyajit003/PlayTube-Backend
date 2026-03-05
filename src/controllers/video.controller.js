@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {
+  deleteFromCloudinary,
   getVideoFromCloudinary,
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
@@ -49,11 +50,12 @@ const uploadVideo = asyncHandler(async (req, res) => {
     thumbnail: thumbnailUploaded.url,
     thumbnailPublicId: thumbnailUploaded.public_id,
     owner,
+    isPublished: false,
   });
 
   return res
     .status(200)
-    .json(new ApiResponse(200, video.title, "Video uploaded successfully:)"));
+    .json(new ApiResponse(200, video, "Video uploaded successfully:)"));
 });
 
 // controller to get all videos
@@ -133,7 +135,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
           {
             $project: {
               username: 1,
-              "avatar.url": 1,
+              avatar: 1,
             },
           },
         ],
@@ -235,7 +237,7 @@ const getVideoById = asyncHandler(async (req, res) => {
           {
             $project: {
               username: 1,
-              "avatar.url": 1,
+              avatar: 1,
               subscriberCount: 1,
               isSubscribed: 1,
             },
@@ -245,7 +247,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     },
     {
       $project: {
-        "videoFile.url": 1,
+        videoFile: 1,
         title: 1,
         description: 1,
         views: 1,
@@ -282,4 +284,69 @@ const getVideoById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, video[0], "video details fetched successfully"));
 });
 
-export { uploadVideo, getAllVideos, getVideoById };
+// controller for updating an existing video
+const updateVideo = asyncHandler(async (req, res) => {
+  const { title, description } = req.body;
+  const videoId = req.params.videoId;
+
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid VideoId!!!");
+  }
+
+  if (!(title && description)) {
+    throw new ApiError(400, "title and description is required!!!");
+  }
+
+  // fetching the video from the database
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(400, "No video found!!!");
+  }
+
+  if (video.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(
+      400,
+      "You can't update the video as you are not the owner!!!"
+    );
+  }
+
+  // delete and update the thumbnail
+  const thumbnailToDelete = video.thumbnailPublicId;
+
+  const thumbnailLocalPath = req.file?.path;
+  if (!thumbnailLocalPath) {
+    throw new ApiError(400, "Thumbnail is required!!!");
+  }
+
+  const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+
+  if (!thumbnail) {
+    throw new ApiError(500, "Error while updating thumbnail on Cloudinary!!!");
+  }
+
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        title,
+        description,
+        thumbnail: thumbnail.url,
+        thumbnailPublicId: thumbnail.public_id,
+      },
+    },
+    { new: true }
+  );
+
+  if (!updateVideo) {
+    throw new ApiError(400, "Failed to update video, try again!!!");
+  }
+
+  await deleteFromCloudinary(thumbnailToDelete);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo, "Video updated successfully"));
+});
+
+export { uploadVideo, getAllVideos, getVideoById, updateVideo };
