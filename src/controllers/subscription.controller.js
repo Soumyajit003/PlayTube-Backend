@@ -60,9 +60,9 @@ const getUserChannelSubscriber = asyncHandler(async (req, res) => {
   const subscribers = await Subscription.aggregate([
     {
       // matching the channelId from the subscription collections
-      $match:{
-        channel:channelId
-      }
+      $match: {
+        channel: channelId,
+      },
     },
     {
       // after getting all the collections, fetching the details of the subscriber
@@ -132,6 +132,80 @@ const getUserChannelSubscriber = asyncHandler(async (req, res) => {
     );
 });
 
+// controller to get subscribed channel of an user
+const getSubscribedChannel = asyncHandler(async (req, res) => {
+  const { subscriberId } = req.params;
+  if (!isValidObjectId(subscriberId)) {
+    throw new ApiError(400, "Invalid subscriber Id!!!");
+  }
 
+  const subscribedChannels = await Subscription.aggregate([
+    {
+      $match: {
+        subscriber: new mongoose.Types.ObjectId(subscriberId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "channel",
+        foreignField: "_id",
+        as: "subscribedChannel",
+        pipeline: [
+          {
+            $lookup: {
+              from: "videos",
+              localField: "_id",
+              foreignField: "owner",
+              as: "videos",
+            },
+          },
+          {
+            $addFields: {
+              latestVideo: {
+                $last: "$videos",
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$subscribedChannel",
+    },
+    {
+      $project: {
+        _id: 0,
+        subscribedChannel: {
+          _id: 1,
+          username: 1,
+          fullname: 1,
+          avatar: 1,
+          latestVideo: {
+            _id: 1,
+            videofile: 1,
+            title: 1,
+            thumbnail: 1,
+            owner: 1,
+            description: 1,
+            duration: 1,
+            createdAt: 1,
+            views: 1,
+          },
+        },
+      },
+    },
+  ]);
 
-export { toggleSubscription, getUserChannelSubscriber };
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        subscribedChannels,
+        "subscribed channels fetched successfully"
+      )
+    );
+});
+
+export { toggleSubscription, getUserChannelSubscriber, getSubscribedChannel };
