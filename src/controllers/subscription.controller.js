@@ -1,14 +1,14 @@
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Subscription } from "../models/subscription.model.js";
 
-// toggle subscribe
+// controller toggle subscribe
 const toggleSubscription = asyncHandler(async (req, res) => {
-  const { channelId } = req.params;
+  const channelId = req.params.channelId;
   if (!isValidObjectId(channelId)) {
-    throw new ApiError(400, "Invalid channel Id");
+    throw new ApiError(400, "Invalid channel Id!!!");
   }
 
   // checking wheather the channel is subscribed or not
@@ -45,4 +45,93 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     );
 });
 
-export { toggleSubscription }
+// controller to get subscriber list of the channel
+const getUserChannelSubscriber = asyncHandler(async (req, res) => {
+  let channelId = req.params.channelId;
+  if (!isValidObjectId(channelId)) {
+    throw new ApiError(400, "Invalid channel Id!!!");
+  }
+
+  // converting channelId from String ["65f1c1e4c2e4a81234abcd12"] to ObjectId type [ObjectId("65f1c1e4c2e4a81234abcd12")]
+  // to perform $match using channelId
+  channelId = new mongoose.Types.ObjectId(channelId);
+
+  // pipeline to get subscribers and subscriber details
+  const subscribers = await Subscription.aggregate([
+    {
+      // matching the channelId from the subscription collections
+      $match:{
+        channel:channelId
+      }
+    },
+    {
+      // after getting all the collections, fetching the details of the subscriber
+      $lookup: {
+        from: "users",
+        localField: "subscriber",
+        foreignField: "_id",
+        as: "subscriber",
+        pipeline: [
+          {
+            // fetching the subscriber's channel subscribers
+            $lookup: {
+              from: "subscriptions",
+              localField: "_id",
+              foreignField: "channel",
+              as: "subscibedToSubscriber",
+            },
+          },
+          {
+            $addFields: {
+              // adding whether the current channel subscribed to this subscriber's channel
+              isSubscribedToSubscriber: {
+                $cond: {
+                  if: {
+                    $in: [channelId, "$subscibedToSubscriber.subscriber"],
+                  },
+                  then: true,
+                  else: false,
+                },
+              },
+              // counting the subcribers of the subscriber's channel
+              subscriberCount: {
+                $size: "$subscibedToSubscriber",
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      // unwinding the array to object
+      $unwind: "$subscriber",
+    },
+    {
+      $project: {
+        _id: 0,
+        subscriber: {
+          _id: 1,
+          username: 1,
+          fullname: 1,
+          avatar: 1,
+          subscibedToSubscriber: 1,
+          subscriberCount: 1,
+        },
+      },
+    },
+  ]);
+
+  return res
+    .send(200)
+    .json(
+      new ApiResponse(
+        200,
+        { subscribers },
+        "Successfully fetched the list of subscribers with their details..."
+      )
+    );
+});
+
+
+
+export { toggleSubscription, getUserChannelSubscriber };
