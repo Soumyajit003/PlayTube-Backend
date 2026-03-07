@@ -120,6 +120,7 @@ const getChannelVideos = asyncHandler(async (req, res) => {
         thumbnail: 1,
         title: 1,
         description: 1,
+        views:1,
         createdAt: {
           year: 1,
           month: 1,
@@ -136,4 +137,4 @@ const getChannelVideos = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, videos, "channel videos fetched successfully"));
 });
 
-export { getChannelStats };
+export { getChannelStats, getChannelVideos };
