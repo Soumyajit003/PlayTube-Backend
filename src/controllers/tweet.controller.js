@@ -1,14 +1,14 @@
-import asyncHandler from "../utils/asyncHandler.js";
-import ApiError from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
 import { Tweet } from "../models/tweet.model.js";
-import ApiResponse from "../utils/ApiResponse.js";
-import mongoose, { isValidObjectId } from "mongoose";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import mongoose, { isValidObjectId, now } from "mongoose";
 import { User } from "../models/user.model.js";
 import { Like } from "../models/like.model.js";
 
 // controller to create tweet
 const createTweet = asyncHandler(async (req, res) => {
-  const { contentDetails } = req.body;
+  const { title, content } = req.body;
 
   if (!content) {
     throw new ApiError(400, "Content required!!!");
@@ -16,8 +16,8 @@ const createTweet = asyncHandler(async (req, res) => {
 
   const tweet = await Tweet.create({
     owner: req.user?._id,
-    title: contentDetails.title,
-    content: contentDetails.content,
+    title: title,
+    content: content,
   });
 
   if (!tweet) {
@@ -32,7 +32,7 @@ const createTweet = asyncHandler(async (req, res) => {
 // controller to update an existing tweet
 const updateTweet = asyncHandler(async (req, res) => {
   const { tweetId } = req.params;
-  const { updatedContent } = req.body;
+  const { title, content } = req.body;
 
   if (!isValidObjectId(tweetId)) {
     throw new ApiError(400, "Invalid tweet id!!!");
@@ -47,18 +47,13 @@ const updateTweet = asyncHandler(async (req, res) => {
     throw new ApiError(400, "only owner can edit thier tweet!!!");
   }
 
-  if (!updatedContent) {
-    return res
-      .status(200)
-      .json(new ApiResponse(200, {}, "Nothing changed in tweet..."));
-  }
 
   const updatedTweet = await Tweet.findByIdAndUpdate(
     tweetId,
     {
       $set: {
-        title: updatedContent.title,
-        content: updatedContent.content,
+        title: title,
+        content: content,
       },
     },
     { new: true }
@@ -103,4 +98,91 @@ const deleteTweet = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Tweet deleted successfully..."));
 });
 
-export default { createTweet, updateTweet, deleteTweet };
+// controller to get tweet of user
+const getUserTweet = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(400, "Invalid user id!!!");
+  }
+
+  const tweets = await Tweet.aggregate([
+    {
+      $match: {
+        owner: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerDetails",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "likeDetails",
+        pipeline: [
+          {
+            $project: {
+              likedBy: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        likeCount: {
+          $size: "$likeDetails",
+        },
+        ownerDetails: {
+          $first: "$ownerDetails",
+        },
+        isLiked: {
+          $cond: {
+            if: { $in: [req.user?._id, "$likeDetails.likedBy"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    {
+      $project: {
+        content: 1,
+        ownerDetails: 1,
+        likeCount: 1,
+        isLiked: 1,
+        createdAt: 1,
+      },
+    },
+  ]);
+
+  if (!tweets) {
+    throw new ApiError(500, "Failed to fetch tweet!!!");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, tweets, "Tweets fetched successfully..."));
+});
+
+export { createTweet, updateTweet, deleteTweet, getUserTweet };

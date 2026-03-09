@@ -61,7 +61,7 @@ const getUserChannelSubscriber = asyncHandler(async (req, res) => {
     {
       // matching the channelId from the subscription collections
       $match: {
-        channel: channelId,
+        channel: channelId
       },
     },
     {
