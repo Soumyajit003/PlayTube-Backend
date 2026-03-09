@@ -127,7 +127,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Unauthorized user id");
   }
 
-  const likedVideos = await Like.aggregate([
+  const likedVideosAggegate = await Like.aggregate([
     {
       $match: {
         likedBy: new mongoose.Types.ObjectId(userId),
