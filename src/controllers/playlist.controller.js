@@ -47,17 +47,20 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(400, "No playlist found!!!");
   }
 
-  if(playlist.owner.toString() !== req.user?._id.toString()){
-    throw new ApiError(400, "You are not the owner of this playlist, only owner can edit the playlist!!!");
+  if (playlist.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(
+      400,
+      "You can not update this playlist, as you are not the owner!!!"
+    );
   }
 
   const updatedPlaylist = await Playlist.findByIdAndUpdate(
     playlistId,
     {
-      $set:{
+      $set: {
         name,
         description,
-      }
+      },
     },
     { new: true }
   );
@@ -73,6 +76,34 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     );
 });
 
+// controller to delete a playlist
+const deletePlaylist = asyncHandler(async (req, res) => {
+  const { playlistId } = req.params;
+
+  if (!isValidObjectId(playlistId)) {
+    throw new ApiError(400, "Invalid playlist id!!!");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+
+  if (!playlist) {
+    throw new ApiError(400, "No playlist found!!!");
+  }
+
+  if (playlist.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(
+      400,
+      "You can not delete this playlist, as you are not the owner!!!"
+    );
+  }
+
+  await Playlist.findByIdAndDelete(playlist?._id);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Playlist deleted successfully..."));
+});
 
 
-export { createPlaylist, updatePlaylist };
+
+export { createPlaylist, updatePlaylist, deletePlaylist };
