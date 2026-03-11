@@ -210,7 +210,101 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     );
 });
 
+// controller for getting playlist by id
+const getPlaylistById = asyncHandler(async (req, res) => {
+  const { playlistId } = req.params;
 
+  if (!isValidObjectId(playlistId)) {
+    throw new ApiError(400, "Invalid playlist id!!!");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+
+  if (!playlist) {
+    throw new ApiError(400, "No playlist found!!!");
+  }
+
+  const playlistVideos = await Playlist.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(playlistId),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "videos",
+        foreignField: "_id",
+        as: "playlistVideos",
+      },
+    },
+    {
+      $match: {
+        "playlistVideos.isPublished": true,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "playlistOwner",
+      },
+    },
+    {
+      $addFields: {
+        totalVideos: {
+          $size: "$playlistVideos",
+        },
+        totalViews: {
+          $sum: "$playlistVideos.views",
+        },
+        owner: {
+          $first: "$playlistOwner",
+        },
+      },
+    },
+    {
+      $project: {
+        name: 1,
+        description: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        totalVideos: 1,
+        totalViews: 1,
+        playlistVideos: {
+          _id: 1,
+          videofile: 1,
+          thumbnail: 1,
+          title: 1,
+          description: 1,
+          views: 1,
+          duration: 1,
+          createdAt: 1,
+        },
+        playlistOwner: {
+          username: 1,
+          fullname: 1,
+          avatar: 1,
+        },
+      },
+    },
+  ]);
+
+  if (!playlistVideos) {
+    throw new ApiError(500, "Failed to fetch playlist!!!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        playlistVideos[0],
+        "Playlist fetched successfully..."
+      )
+    );
+});
 
 export {
   createPlaylist,
@@ -218,5 +312,5 @@ export {
   deletePlaylist,
   addVideoToPlaylist,
   removeVideoFromPlaylist,
-  getPlaylistById
+  getPlaylistById,
 };
