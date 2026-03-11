@@ -52,7 +52,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
     thumbnail: thumbnailUploaded.url,
     thumbnailPublicId: thumbnailUploaded.public_id,
     owner,
-    isPublished: false,
+    isPublished: true,
   });
 
   return res

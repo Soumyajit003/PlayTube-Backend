@@ -1,11 +1,10 @@
-import { ApiResponse } from "../utils/ApiResponse";
-import { Playlist } from "./../models/playlist.model";
-import { Video } from "./../models/video.model";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { ApiError } from "../utils/ApiError.js";
+import { Playlist } from "./../models/playlist.model.js";
+import { Video } from "./../models/video.model.js";
 import mongoose, { isValidObjectId } from "mongoose";
-import { asyncHandler } from "../utils/asyncHandler";
-import { User } from "./../models/user.model";
+import { User } from "./../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 // controller to create a playlist
 const createPlaylist = asyncHandler(async (req, res) => {
@@ -329,7 +328,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
-        from: "vidoes",
+        from: "videos",
         localField: "videos",
         foreignField: "_id",
         as: "playlistVideos",
