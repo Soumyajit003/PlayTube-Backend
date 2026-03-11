@@ -47,10 +47,17 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(400, "No playlist found!!!");
   }
 
+  if(playlist.owner.toString() !== req.user?._id.toString()){
+    throw new ApiError(400, "You are not the owner of this playlist, only owner can edit the playlist!!!");
+  }
+
   const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
     {
-      name,
-      description,
+      $set:{
+        name,
+        description,
+      }
     },
     { new: true }
   );
@@ -65,5 +72,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
       new ApiResponse(200, updatedPlaylist, "Playlist updated successfully...")
     );
 });
+
+
 
 export { createPlaylist, updatePlaylist };
