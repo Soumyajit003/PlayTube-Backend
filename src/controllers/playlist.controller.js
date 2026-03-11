@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose, { isValidObjectId } from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
+import { User } from "./../models/user.model";
 
 // controller to create a playlist
 const createPlaylist = asyncHandler(async (req, res) => {
@@ -306,6 +307,67 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     );
 });
 
+// controller to get user playlist
+const getUserPlaylists = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(400, "Invalid user id!!!");
+  }
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(400, "No user found!!!");
+  }
+
+  const playlists = await Playlist.aggregate([
+    {
+      $match: {
+        owner: new mongoose.Types.ObjectId(user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "vidoes",
+        localField: "videos",
+        foreignField: "_id",
+        as: "playlistVideos",
+      },
+    },
+    {
+      $addFields: {
+        totalVideos: {
+          $size: "$playlistVideos",
+        },
+        totalViews: {
+          $sum: "$playlistVideos.views",
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        description: 1,
+        totalVideos: 1,
+        totalViews: 1,
+        updatedAt: 1,
+      },
+    },
+  ]);
+
+  if (!playlists) {
+    throw new ApiError(500, "Failed to fetch user playlists!!!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, playlists, "User playlists fetched successfully...")
+    );
+});
+
 export {
   createPlaylist,
   updatePlaylist,
@@ -313,4 +375,5 @@ export {
   addVideoToPlaylist,
   removeVideoFromPlaylist,
   getPlaylistById,
+  getUserPlaylists,
 };
