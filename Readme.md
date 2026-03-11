@@ -185,8 +185,14 @@ You can test all APIs using:
 
 ---
 
-# 👨‍💻 Author
+# 🤝 Contributing
 
-Developed by **Soumyajit**
+If you wish to contribute to this project, feel free to fork the repository and submit a pull request.
 
-If you like this project, consider giving it a ⭐ on GitHub.
+Any improvements, suggestions, or bug fixes are welcome!
+
+---
+
+# 📄 License
+
+This project is created for learning purposes based on the [**ChaiAurCode Backend Development Course**](https://www.youtube.com/playlist?list=PLu71SKxNbfoBGh_8p_NS-ZAh6v7HhYqHW).
