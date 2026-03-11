@@ -104,6 +104,61 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Playlist deleted successfully..."));
 });
 
+// controller to add a video to a playlist
+const addVideoToPlaylist = asyncHandler(async (req, res) => {
+  const { playlistId, videoId } = req.params;
 
+  if (!isValidObjectId(playlistId)) {
+    throw new ApiError(400, "Invalid playlist id!!!");
+  }
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video id!!!");
+  }
 
-export { createPlaylist, updatePlaylist, deletePlaylist };
+  const playlist = await Playlist.findById(playlistId);
+  const video = await Video.findById(videoId);
+
+  if (!playlist) {
+    throw new ApiError(400, "No playlist found!!!");
+  }
+  if (!video) {
+    throw new ApiError(400, "No vidoe found!!!");
+  }
+
+  if (playlist.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(403, "You are not the owner of this playlist");
+  }
+
+  if (playlist.owner.toString() !== video.owner.toString()) {
+    throw new ApiError(
+      403,
+      "You can only add your own videos to this playlist"
+    );
+  }
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlist?._id,
+    {
+      $addToSet: {
+        videos: videoId,
+      },
+    },
+    { new: true }
+  );
+
+  if (!updatedPlaylist) {
+    throw new ApiError(400, "Failed to add video to playlist!!!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedPlaylist,
+        "Added video to playlist successfully..."
+      )
+    );
+});
+
+export { createPlaylist, updatePlaylist, deletePlaylist, addVideoToPlaylist };
