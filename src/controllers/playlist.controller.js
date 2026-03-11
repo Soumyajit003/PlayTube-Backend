@@ -31,3 +31,39 @@ const createPlaylist = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, playlist, "Playlist created successfully..."));
 });
+
+// controller to update a playlist
+const updatePlaylist = asyncHandler(async (req, res) => {
+  const { playlistId } = req.params;
+  const { name, description } = req.body;
+
+  if (!isValidObjectId(playlistId)) {
+    throw new ApiError(400, "Invalid playlist id!!!");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+
+  if (!playlist) {
+    throw new ApiError(400, "No playlist found!!!");
+  }
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    {
+      name,
+      description,
+    },
+    { new: true }
+  );
+
+  if (!updatedPlaylist) {
+    throw new ApiError(400, "Failed to update the playlist!!!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedPlaylist, "Playlist updated successfully...")
+    );
+});
+
+export { createPlaylist, updatePlaylist };
